@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Breathwork — Follow Along</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  min-height: 100vh;
+  font-family: Georgia, 'Times New Roman', serif;
+  color: #fff;
+  overflow-x: hidden;
+  transition: background 1.2s ease;
+}
+
+@keyframes pulseGlow {
+  0%,100% { opacity: 0.5; transform: scale(1); }
+  50%      { opacity: 1;   transform: scale(1.1); }
+}
+@keyframes ringExpand {
+  0%   { transform: scale(1);   opacity: 0.6; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes soundWave {
+  0%,100% { transform: scaleY(0.3); }
+  50%     { transform: scaleY(1); }
+}
+@keyframes completePulse {
+  0%,100% { opacity: 1; }
+  50%     { opacity: 0.55; }
+}
+
+#app {
+  max-width: 540px;
+  margin: 0 auto;
+  padding: 24px 18px 60px;
+}
+
+.hdr-micro {
+  text-align: center; font-size: 10px; letter-spacing: 6px;
+  opacity: 0.3; font-family: monospace; margin-bottom: 5px;
+}
+.hdr-title {
+  text-align: center; font-size: 21px; font-weight: 400;
+  letter-spacing: 1px; opacity: 0.9; margin-bottom: 20px;
+}
+
+/* SOUND TOGGLE */
+#sound-row {
+  display: flex; justify-content: center;
+  margin-bottom: 18px;
+}
+#sound-toggle {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 18px; border-radius: 20px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  cursor: pointer; transition: all 0.2s ease;
+  font-family: monospace; font-size: 11px;
+  color: rgba(255,255,255,0.45); letter-spacing: 2px;
+}
+#sound-toggle:hover { background: rgba(255,255,255,0.1); }
+#sound-toggle.on {
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.9);
+  border-color: rgba(255,255,255,0.25);
+}
+.snd-icon { font-size: 15px; }
+.sound-bars {
+  display: none; align-items: center; gap: 2px; height: 14px;
+}
+#sound-toggle.on .sound-bars { display: flex; }
+.sbar {
+  width: 3px; border-radius: 2px;
+  background: currentColor; opacity: 0.7;
+}
+.sbar:nth-child(1) { height: 5px;  animation: soundWave 0.9s ease-in-out 0.0s infinite; }
+.sbar:nth-child(2) { height: 11px; animation: soundWave 0.9s ease-in-out 0.15s infinite; }
+.sbar:nth-child(3) { height: 7px;  animation: soundWave 0.9s ease-in-out 0.3s infinite; }
+.sbar:nth-child(4) { height: 13px; animation: soundWave 0.9s ease-in-out 0.08s infinite; }
+.sbar:nth-child(5) { height: 4px;  animation: soundWave 0.9s ease-in-out 0.22s infinite; }
+
+/* TABS */
+#tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 7px; margin-bottom: 20px;
+}
+.tab-btn {
+  padding: 11px 4px; border-radius: 11px;
+  border: 1.5px solid rgba(255,255,255,0.07);
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.4);
+  font-size: 9px; font-weight: 700;
+  letter-spacing: 1px; font-family: monospace;
+  cursor: pointer; transition: all 0.25s ease; line-height: 1.5;
+}
+.tab-btn .tab-emoji { font-size: 19px; display: block; margin-bottom: 4px; }
+.tab-btn:hover { transform: translateY(-2px); }
+
+/* TAGLINE */
+#tagline {
+  padding: 9px 14px; border-radius: 9px; margin-bottom: 18px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  font-size: 10.5px; color: rgba(255,255,255,0.38);
+  letter-spacing: 0.5px; line-height: 1.6;
+  font-family: monospace; text-align: center;
+}
+
+/* ORB */
+#orb-wrap { display: flex; justify-content: center; margin-bottom: 16px; }
+#orb-container {
+  position: relative; width: 280px; height: 280px;
+  display: flex; align-items: center; justify-content: center;
+}
+#orb-glow {
+  position: absolute; inset: -20px; border-radius: 50%;
+  opacity: 0; pointer-events: none;
+  animation: pulseGlow 3s ease-in-out infinite;
+}
+#orb-ring {
+  position: absolute; inset: 10px; border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.15);
+  opacity: 0; pointer-events: none;
+  animation: ringExpand 2.5s ease-out infinite;
+}
+#orb-svg { position: absolute; top: 0; left: 0; transform: rotate(-90deg); }
+#orb-arc { transition: stroke-dashoffset 0.95s linear, stroke 0.6s ease; }
+#orb-ball {
+  width: 160px; height: 160px; border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.2);
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column; position: relative; z-index: 2;
+  transition: transform 0.6s ease, box-shadow 0.6s ease,
+              background 0.6s ease, border-color 0.6s ease;
+}
+#orb-number {
+  font-family: 'Courier New', monospace; font-weight: 300;
+  line-height: 1; transition: font-size 0.3s ease, color 0.3s ease;
+}
+#orb-sublabel {
+  font-family: monospace; font-size: 9px; letter-spacing: 3px;
+  opacity: 0.55; margin-top: 4px;
+}
+.tick-mark {
+  position: absolute; width: 1px; top: 50%; left: 50%;
+  transform-origin: 0 -132px; transition: background 0.5s ease;
+}
+
+/* CUE */
+#cue-area {
+  text-align: center; margin-bottom: 7px; min-height: 66px;
+}
+#phase-label {
+  font-size: 9px; letter-spacing: 5px; font-family: monospace;
+  font-weight: 700; margin-bottom: 7px; min-height: 14px;
+}
+#cue-big {
+  font-size: 14px; line-height: 1.7;
+  color: rgba(255,255,255,0.75); max-width: 360px; margin: 0 auto;
+}
+#cue-small {
+  font-size: 11px; color: rgba(255,255,255,0.3);
+  margin-top: 5px; line-height: 1.6;
+}
+
+/* COUNT DOTS */
+#count-dots {
+  display: flex; justify-content: center; align-items: center;
+  min-height: 26px; margin-bottom: 12px; flex-wrap: wrap; gap: 4px;
+}
+.dot-num { font-family: monospace; transition: all 0.25s ease; }
+
+/* RELEASE */
+#release-wrap { display: flex; justify-content: center; margin-bottom: 12px; }
+#release-btn {
+  padding: 10px 32px; border-radius: 30px; font-size: 12px;
+  letter-spacing: 4px; font-family: monospace; font-weight: 700;
+  cursor: pointer; transition: all 0.2s ease;
+}
+#release-btn:hover { transform: scale(1.05); opacity: 0.9; }
+
+/* PROGRESS */
+#progress-wrap { margin-bottom: 16px; }
+#prog-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+#prog-label { font-size: 10px; font-family: monospace; opacity: 0.28; letter-spacing: 2px; }
+#prog-count { font-size: 10px; font-family: monospace; letter-spacing: 1px; }
+#prog-track { height: 3px; background: rgba(255,255,255,0.07); border-radius: 2px; overflow: hidden; }
+#prog-fill  { height: 100%; border-radius: 2px; transition: width 0.8s ease; }
+
+/* CONTROLS */
+#controls { display: flex; gap: 10px; margin-bottom: 20px; }
+.ctrl-btn {
+  padding: 14px; border-radius: 13px; font-size: 12px;
+  font-weight: 700; letter-spacing: 4px; font-family: monospace;
+  cursor: pointer; transition: all 0.2s ease; border: none;
+}
+.ctrl-btn:hover  { transform: scale(1.05); opacity: 0.9; }
+.ctrl-btn:active { transform: scale(0.96); }
+#btn-start  { flex: 1; color: #000; }
+#btn-pause  { flex: 1; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12) !important; color: #fff; }
+#btn-resume { flex: 1; }
+#btn-reset  { padding: 14px 18px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07) !important; color: rgba(255,255,255,0.3); font-size: 16px; }
+
+/* DONE BANNER */
+#done-banner {
+  display: none; text-align: center; padding: 16px;
+  border-radius: 12px; margin-bottom: 16px;
+  animation: completePulse 2.5s ease-in-out infinite;
+}
+.done-emoji { font-size: 30px; margin-bottom: 5px; }
+.done-text  { font-size: 15px; font-weight: 400; opacity: 0.9; }
+.done-sub   { font-size: 10px; opacity: 0.45; margin-top: 3px; font-family: monospace; letter-spacing: 3px; }
+
+/* PHASE STRIP */
+#phase-strip { display: flex; flex-direction: column; gap: 7px; }
+.phase-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px; border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.025);
+  transition: all 0.35s ease;
+}
+.phase-num {
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-family: monospace; font-weight: 700;
+  color: rgba(255,255,255,0.3); transition: all 0.35s ease;
+}
+.phase-info { flex: 1; min-width: 0; }
+.phase-name { font-size: 9px; letter-spacing: 3px; font-family: monospace; font-weight: 700; margin-bottom: 2px; color: rgba(255,255,255,0.3); transition: color 0.35s; }
+.phase-cue  { font-size: 11px; color: rgba(255,255,255,0.4); line-height: 1.5; }
+.phase-dur  { font-size: 17px; font-family: monospace; font-weight: 300; color: rgba(255,255,255,0.15); transition: color 0.35s; flex-shrink: 0; }
+
+/* WARNING */
+#warning-box {
+  display: none; margin-top: 14px; padding: 12px 14px; border-radius: 10px;
+  background: rgba(255,80,0,0.07); border: 1px solid rgba(255,80,0,0.22);
+  font-size: 11px; color: #ff9966; line-height: 1.7; font-family: monospace;
+}
+
+/* INFO CARDS */
+#info-cards { margin-top: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.info-card { padding: 13px; border-radius: 11px; background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.05); }
+.info-card-label { font-size: 8px; letter-spacing: 3px; opacity: 0.28; margin-bottom: 7px; font-family: monospace; }
+.info-card-text  { font-size: 11px; opacity: 0.5; line-height: 1.75; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="hdr-micro">BREATHWORK · FOLLOW ALONG</div>
+  <div class="hdr-title">Guided Breathing</div>
+
+  <div id="sound-row">
+    <button id="sound-toggle" onclick="toggleSound()">
+      <span class="snd-icon">🔇</span>
+      <span id="snd-label">SOUND OFF</span>
+      <span class="sound-bars">
+        <span class="sbar"></span><span class="sbar"></span>
+        <span class="sbar"></span><span class="sbar"></span>
+        <span class="sbar"></span>
+      </span>
+    </button>
+  </div>
+
+  <div id="tabs">
+    <button class="tab-btn" data-idx="0"><span class="tab-emoji">🧠</span>CALM<br>FOCUS</button>
+    <button class="tab-btn" data-idx="1"><span class="tab-emoji">🌙</span>SLEEP<br>NOW</button>
+    <button class="tab-btn" data-idx="2"><span class="tab-emoji">⚡</span>WAR<br>MODE</button>
+    <button class="tab-btn" data-idx="3"><span class="tab-emoji">🎯</span>NAVY<br>SEAL</button>
+  </div>
+
+  <div id="tagline"></div>
+
+  <div id="orb-wrap">
+    <div id="orb-container">
+      <div id="orb-glow"></div>
+      <div id="orb-ring"></div>
+      <svg id="orb-svg" width="280" height="280">
+        <circle cx="140" cy="140" r="110" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="2.5"/>
+        <circle id="orb-arc" cx="140" cy="140" r="110" fill="none"
+          stroke="#fff" stroke-width="2.5" stroke-linecap="round"
+          stroke-dasharray="691.15" stroke-dashoffset="691.15"/>
+      </svg>
+      <div id="orb-ball">
+        <div id="orb-number">·</div>
+        <div id="orb-sublabel"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="cue-area">
+    <div id="phase-label"></div>
+    <div id="cue-big">Press START</div>
+    <div id="cue-small"></div>
+  </div>
+
+  <div id="count-dots"></div>
+
+  <div id="release-wrap" style="display:none">
+    <button id="release-btn">RELEASE →</button>
+  </div>
+
+  <div id="progress-wrap">
+    <div id="prog-row">
+      <span id="prog-label">CYCLES</span>
+      <span id="prog-count">0 / 0</span>
+    </div>
+    <div id="prog-track"><div id="prog-fill" style="width:0%"></div></div>
+  </div>
+
+  <div id="controls">
+    <button id="btn-start"  class="ctrl-btn" onclick="handleStart()">▶ START</button>
+    <button id="btn-pause"  class="ctrl-btn" onclick="handlePause()"  style="display:none">⏸ PAUSE</button>
+    <button id="btn-resume" class="ctrl-btn" onclick="handleResume()" style="display:none">▶ RESUME</button>
+    <button id="btn-reset"  class="ctrl-btn" onclick="doReset()" style="border:none">↺</button>
+  </div>
+
+  <div id="done-banner">
+    <div class="done-emoji">✓</div>
+    <div class="done-text">Session Complete</div>
+    <div class="done-sub">WELL DONE</div>
+  </div>
+
+  <div id="phase-strip"></div>
+  <div id="warning-box"></div>
+
+  <div id="info-cards">
+    <div class="info-card">
+      <div class="info-card-label">🔬 SCIENCE</div>
+      <div class="info-card-text" id="card-science"></div>
+    </div>
+    <div class="info-card">
+      <div class="info-card-label">⏰ WHEN TO USE</div>
+      <div class="info-card-text" id="card-when"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  TECHNIQUE DATA
+// ═══════════════════════════════════════════════════
+const T = [
+  {
+    id:"focus", label:"Calm Focus", emoji:"🧠",
+    tagline:"Resonance Breathing · Study · Deep Work · Clarity",
+    accent:"#00C9FF", glow:"rgba(0,201,255,0.4)",
+    orb:"rgba(0,150,220,0.18)", bgA:"#030f1a", bgB:"#040d18",
+    cycles:30, cLabel:"breaths",
+    sci:"Breathing at exactly 6 breaths/min synchronises with your heart's baroreflex cycle, maximising HRV and activating the prefrontal cortex — calm alertness without drowsiness.",
+    use:"5 min before studying or deep work. Or any time your mind drifts mid-session.",
+    posture:"Sit upright. Feet flat. Belly breathing, not chest.",
+    warn:null,
+    phases:[
+      {label:"INHALE", cue:"Breathe in through nose… belly first, then chest", dur:5, scale:1.55, col:"#00C9FF", snd:"inhale"},
+      {label:"EXHALE", cue:"Let it fall out… slow and complete",               dur:5, scale:0.72, col:"#0077aa", snd:"exhale"},
+    ]
+  },
+  {
+    id:"sleep", label:"Sleep Now", emoji:"🌙",
+    tagline:"4-7-8 Breathing · Drift Off · Quiet Mind · Deep Rest",
+    accent:"#b388ff", glow:"rgba(179,136,255,0.4)",
+    orb:"rgba(100,60,200,0.18)", bgA:"#08041a", bgB:"#050210",
+    cycles:8, cLabel:"cycles",
+    sci:"The 7s hold lets CO₂ build, triggering the diving reflex. The 8s exhale fires the vagus nerve, flooding your system with acetylcholine — your body's chemical brake.",
+    use:"Lying in bed. Lights off. Eyes closed. Last thing before sleep.",
+    posture:"Lie flat on back. Jaw loose. Arms by sides, palms up.",
+    warn:null,
+    phases:[
+      {label:"CLEAR",  cue:"Exhale everything through mouth — whoooosh", dur:2, scale:0.68, col:"#6633aa", snd:"exhale"},
+      {label:"INHALE", cue:"Inhale quietly through nose…",                dur:4, scale:1.45, col:"#b388ff", snd:"inhale"},
+      {label:"HOLD",   cue:"Hold… let your heart rate slow…",             dur:7, scale:1.45, col:"#d0b0ff", snd:"hold"},
+      {label:"EXHALE", cue:"Exhale through mouth… whoooosh…",             dur:8, scale:0.68, col:"#7c44cc", snd:"exhale"},
+    ]
+  },
+  {
+    id:"alert", label:"War Mode", emoji:"⚡",
+    tagline:"Wim Hof Protocol · Gym · Training · Combat · Competition",
+    accent:"#FF6B35", glow:"rgba(255,107,53,0.45)",
+    orb:"rgba(220,80,20,0.18)", bgA:"#150500", bgB:"#0a0200",
+    cycles:3, cLabel:"rounds",
+    sci:"30 rapid breaths drop CO₂ → respiratory alkalosis → adrenal epinephrine surge → norepinephrine spikes in the locus coeruleus → beta waves → maximum alertness.",
+    use:"10–15 min before training, competition, or any high-performance task.",
+    posture:"Sit or lie down. NEVER standing. NEVER near water. NEVER while driving.",
+    warn:"Tingling in hands/lips = normal (alkalosis). Lightheadedness = slow down. Stop if you feel faint.",
+    phases:[
+      {label:"POWER BREATHE", cue:"30 rapid deep breaths — in through nose, out through mouth", dur:40, scale:1.5,  col:"#FF6B35", snd:"power"},
+      {label:"HOLD EMPTY",    cue:"Exhale & HOLD on empty lungs — as long as you can",          dur:-1, scale:0.75, col:"#cc3300", snd:"hold",  manual:true},
+      {label:"RECOVERY",      cue:"Deep full inhale — hold for 15 seconds",                     dur:15, scale:1.55, col:"#ffaa55", snd:"inhale"},
+    ]
+  },
+  {
+    id:"navy", label:"Navy SEAL", emoji:"🎯",
+    tagline:"Box Breathing · Tactical Calm · Stress Control · Elite Focus",
+    accent:"#22c55e", glow:"rgba(34,197,94,0.4)",
+    orb:"rgba(20,140,60,0.18)", bgA:"#021408", bgB:"#010a04",
+    cycles:20, cLabel:"boxes",
+    sci:"Equal 4-4-4-4 timing balances the autonomic nervous system symmetrically. Used by Navy SEALs, surgeons and elite athletes to lower cortisol, stabilise heart rate and maintain peak decision-making under extreme stress.",
+    use:"Before high-stakes events, during acute stress, before sleep, or any time you need controlled calm with full mental presence.",
+    posture:"Sit tall or stand. Slow, deliberate breathing. Nose throughout.",
+    warn:null,
+    phases:[
+      {label:"INHALE",   cue:"Breathe in through nose… slow and steady",    dur:4, scale:1.5,  col:"#22c55e", snd:"inhale"},
+      {label:"HOLD IN",  cue:"Hold… chest full… completely still",           dur:4, scale:1.5,  col:"#86efac", snd:"hold"},
+      {label:"EXHALE",   cue:"Exhale through nose… completely empty",        dur:4, scale:0.70, col:"#16a34a", snd:"exhale"},
+      {label:"HOLD OUT", cue:"Hold on empty… lungs clear… stay calm",        dur:4, scale:0.70, col:"#15803d", snd:"hold"},
+    ]
+  },
+];
+
+// ═══════════════════════════════════════════════════
+//  SPEECH ENGINE  (Web Speech API)
+// ═══════════════════════════════════════════════════
+let SON = false;
+let speechTimers = [];
+
+// Map phase label → spoken word
+const PHASE_WORD = {
+  "INHALE":        "Inhale",
+  "EXHALE":        "Exhale",
+  "HOLD":          "Hold",
+  "HOLD IN":       "Hold",
+  "HOLD OUT":      "Hold",
+  "HOLD EMPTY":    "Hold",
+  "CLEAR":         "Exhale",
+  "POWER BREATHE": "Power breathe",
+  "RECOVERY":      "Inhale",
+};
+
+function speak(text, { rate = 0.88, pitch = 1.0, volume = 1.0 } = {}) {
+  if (!SON || !window.speechSynthesis) return;
+  const u = new SpeechSynthesisUtterance(text);
+  u.rate   = rate;
+  u.pitch  = pitch;
+  u.volume = volume;
+  window.speechSynthesis.speak(u);
+}
+
+function stopSounds() {
+  speechTimers.forEach(id => clearTimeout(id));
+  speechTimers = [];
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+}
+
+// Speak the phase keyword, then count each second: "2", "3", "4" …
+function playSound(type, dur) {
+  if (!SON) return;
+  stopSounds();
+
+  // Power breathe: just count up every ~1.3 s for 30 reps
+  if (type === "power") {
+    speak("Power breathe", { rate: 0.9 });
+    const step = Math.max(1, Math.floor(dur / 30));
+    for (let i = 1; i <= 30; i++) {
+      const id = setTimeout(() => {
+        if (i % 2 === 1) speak(String(i), { rate: 1.1 });
+      }, i * step * 1000);
+      speechTimers.push(id);
+    }
+    return;
+  }
+
+  // Normal timed phase: speak keyword first, then count 2, 3, 4 …
+  const keyword = PHASE_WORD[type.toUpperCase()] || type;
+  speak(keyword, { rate: 0.85, pitch: type === "exhale" ? 0.9 : 1.05 });
+
+  if (dur > 1) {
+    for (let n = 2; n <= dur; n++) {
+      const id = setTimeout(() => speak(String(n), { rate: 0.9 }), (n - 1) * 1000);
+      speechTimers.push(id);
+    }
+  }
+}
+
+// Completion: say "Well done"
+function chime() {
+  speak("Well done", { rate: 0.8, pitch: 1.1 });
+}
+
+function toggleSound() {
+  SON = !SON;
+  const btn = document.getElementById("sound-toggle");
+  const lbl = document.getElementById("snd-label");
+  const ico = btn.querySelector(".snd-icon");
+  if (SON) {
+    btn.classList.add("on"); lbl.textContent = "VOICE ON"; ico.textContent = "🔊";
+    speak("Voice guidance on", { rate: 0.88 });
+  } else {
+    btn.classList.remove("on"); lbl.textContent = "VOICE OFF"; ico.textContent = "🔇";
+    stopSounds();
+  }
+}
+
+// Stub — no AudioContext needed
+function ac() { return null; }
+
+// ═══════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════
+let tIdx  = 0, status = "idle", pIdx = 0, cd = 0;
+let cycle = 0, mTime = 0;
+let tmr = null, mtmr = null;
+const C = 2 * Math.PI * 110;
+
+// ═══════════════════════════════════════════════════
+//  DOM
+// ═══════════════════════════════════════════════════
+const el = id => document.getElementById(id);
+const orbArc  = el("orb-arc"),  orbBall = el("orb-ball");
+const orbNum  = el("orb-number"), orbSub = el("orb-sublabel");
+const orbGlow = el("orb-glow"),   orbRing = el("orb-ring");
+const pLabel  = el("phase-label"), cueBig = el("cue-big"), cueSmall = el("cue-small");
+const dots    = el("count-dots"), relWrap = el("release-wrap");
+const pLabel2 = el("prog-label"), pCount = el("prog-count"), pFill = el("prog-fill");
+const btnS    = el("btn-start"), btnP = el("btn-pause"), btnR = el("btn-resume");
+const done    = el("done-banner"), strip = el("phase-strip");
+const warn    = el("warning-box"), sci = el("card-science"), use = el("card-when");
+
+// ═══════════════════════════════════════════════════
+//  BUILD TICKS
+// ═══════════════════════════════════════════════════
+function buildTicks() {
+  el("orb-container").querySelectorAll(".tick-mark").forEach(e => e.remove());
+  const acc = T[tIdx].accent;
+  for (let i = 0; i < 12; i++) {
+    const d = document.createElement("div");
+    d.className = "tick-mark";
+    d.style.height = i%3===0 ? "10px" : "6px";
+    d.style.background = i%3===0 ? acc+"55" : acc+"22";
+    d.style.transform  = `rotate(${i*30}deg) translateX(-0.5px)`;
+    el("orb-container").appendChild(d);
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  RENDER TECH
+// ═══════════════════════════════════════════════════
+function renderTech() {
+  const t = T[tIdx];
+  document.body.style.background =
+    `radial-gradient(ellipse at 30% 20%, ${t.orb} 0%, transparent 55%),
+     radial-gradient(ellipse at 80% 80%, ${t.orb} 0%, transparent 55%),
+     linear-gradient(160deg, ${t.bgA} 0%, ${t.bgB} 100%)`;
+
+  document.querySelectorAll(".tab-btn").forEach((b, i) => {
+    const ti = T[i];
+    b.style.background   = i===tIdx ? ti.accent+"20" : "rgba(255,255,255,0.04)";
+    b.style.borderColor  = i===tIdx ? ti.accent : "rgba(255,255,255,0.07)";
+    b.style.color        = i===tIdx ? ti.accent : "rgba(255,255,255,0.4)";
+  });
+
+  el("tagline").textContent = t.tagline;
+  orbGlow.style.background = `radial-gradient(circle, ${t.glow} 0%, transparent 70%)`;
+  btnS.style.background = t.accent;
+  btnR.style.background = t.accent+"22";
+  btnR.style.border     = `1.5px solid ${t.accent}66`;
+  btnR.style.color      = t.accent;
+  el("release-btn").style.border     = `1.5px solid ${t.accent}`;
+  el("release-btn").style.background = t.accent+"22";
+  el("release-btn").style.color      = t.accent;
+  pLabel2.textContent      = t.cLabel.toUpperCase();
+  pCount.style.color        = t.accent;
+  pFill.style.background    = `linear-gradient(90deg,${t.accent}66,${t.accent})`;
+  pFill.style.boxShadow     = `0 0 8px ${t.accent}88`;
+  done.style.background     = t.accent+"18";
+  done.style.border         = `1px solid ${t.accent}44`;
+  done.style.color          = t.accent;
+  done.style.display        = "none";
+  sci.textContent  = t.sci;
+  use.textContent  = t.use;
+  warn.style.display = t.warn ? "block" : "none";
+  if (t.warn) warn.textContent = "⚠ " + t.warn;
+
+  buildStrip(); buildTicks();
+  setOrbCol(t.accent, t.glow, false);
+  orbNum.textContent = "·"; orbNum.style.fontSize = "52px";
+  orbNum.style.color = t.accent; orbNum.style.textShadow = `0 0 20px ${t.accent}`;
+  orbSub.textContent = "";
+  orbBall.style.transform = "scale(1)";
+  orbBall.style.transition = "transform 0.6s ease, box-shadow 0.6s ease, background 0.6s ease";
+  updateProg(); updateCtrl(); renderCue();
+}
+
+// ═══════════════════════════════════════════════════
+//  PHASE STRIP
+// ═══════════════════════════════════════════════════
+function buildStrip() {
+  strip.innerHTML = "";
+  T[tIdx].phases.forEach((p, i) => {
+    const row = document.createElement("div"); row.className = "phase-row"; row.id = "pr"+i;
+    const num = document.createElement("div"); num.className = "phase-num"; num.id = "pn"+i; num.textContent = i+1;
+    const inf = document.createElement("div"); inf.className = "phase-info";
+    const nm  = document.createElement("div"); nm.className  = "phase-name"; nm.id = "pm"+i; nm.textContent = p.label;
+    const cu  = document.createElement("div"); cu.className  = "phase-cue";  cu.textContent = p.cue;
+    inf.append(nm, cu);
+    const dr  = document.createElement("div"); dr.className  = "phase-dur";  dr.id = "pd"+i; dr.textContent = p.manual ? "∞" : p.dur+"s";
+    row.append(num, inf, dr); strip.appendChild(row);
+  });
+}
+function updStrip() {
+  T[tIdx].phases.forEach((_, i) => {
+    const on = status==="running" && i===pIdx;
+    const t  = T[tIdx];
+    const r  = el("pr"+i), n = el("pn"+i), m = el("pm"+i), d = el("pd"+i);
+    if (!r) return;
+    r.style.background  = on ? t.accent+"12" : "rgba(255,255,255,0.025)";
+    r.style.borderColor = on ? t.accent+"55" : "rgba(255,255,255,0.06)";
+    n.style.background  = on ? t.accent : "rgba(255,255,255,0.06)";
+    n.style.borderColor = on ? t.accent : "rgba(255,255,255,0.1)";
+    n.style.color       = on ? "#000" : "rgba(255,255,255,0.3)";
+    m.style.color       = on ? t.accent : "rgba(255,255,255,0.3)";
+    d.style.color       = on ? t.accent : "rgba(255,255,255,0.15)";
+  });
+}
+
+// ═══════════════════════════════════════════════════
+//  ORB
+// ═══════════════════════════════════════════════════
+function setOrbCol(col, glow, act) {
+  orbArc.style.stroke       = col;
+  orbBall.style.background  = `radial-gradient(circle at 38% 35%, ${col}44 0%, ${col}11 50%, transparent 80%)`;
+  orbBall.style.borderColor = col+"55";
+  orbBall.style.boxShadow   = act ? `0 0 40px 10px ${glow}, inset 0 0 30px ${col}22` : "none";
+  orbNum.style.color        = col;
+  orbNum.style.textShadow   = `0 0 20px ${col}`;
+  orbGlow.style.opacity = act ? "1" : "0";
+  orbRing.style.opacity = act ? "1" : "0";
+}
+function setArc(f) {
+  orbArc.style.strokeDashoffset = C * (1 - Math.max(0, Math.min(1, f)));
+}
+function animOrb(p) {
+  const dur = p.dur > 0 ? p.dur : 1;
+  const lbl = p.label;
+  const ease = (lbl==="INHALE"||lbl==="POWER BREATHE")
+    ? `transform ${dur}s cubic-bezier(0.4,0,0.2,1)`
+    : (lbl==="EXHALE"||lbl==="HOLD EMPTY"||lbl==="HOLD OUT")
+    ? `transform ${dur}s cubic-bezier(0.6,0,0.4,1)`
+    : "transform 0.6s ease";
+  orbBall.style.transition = ease + ", box-shadow 0.6s ease, background 0.6s ease, border-color 0.6s ease";
+  setTimeout(() => { orbBall.style.transform = `scale(${p.scale})`; }, 30);
+}
+
+// ═══════════════════════════════════════════════════
+//  COUNT DOTS
+// ═══════════════════════════════════════════════════
+function renderDots(p, elapsed) {
+  if (!p || p.dur <= 0 || p.manual || p.dur > 12) { dots.innerHTML = ""; return; }
+  const acc = T[tIdx].accent;
+  dots.innerHTML = "";
+  for (let n = 1; n <= p.dur; n++) {
+    const s = document.createElement("span");
+    s.className = "dot-num"; s.textContent = n;
+    const lit = n <= elapsed, cur = n === elapsed;
+    s.style.color      = lit ? acc : "rgba(255,255,255,0.2)";
+    s.style.fontSize   = cur ? "18px" : "14px";
+    s.style.fontWeight = cur ? "700" : "400";
+    s.style.margin     = "0 3px";
+    dots.appendChild(s);
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  CUE
+// ═══════════════════════════════════════════════════
+function renderCue() {
+  const t = T[tIdx], p = t.phases[pIdx];
+  if (status==="idle")   { pLabel.textContent=""; cueBig.textContent="Press START";        cueSmall.textContent=t.posture;                   dots.innerHTML=""; orbSub.textContent=""; return; }
+  if (status==="done")   { pLabel.textContent=""; cueBig.textContent="Session Complete ✓"; cueSmall.textContent="Well done.";                dots.innerHTML=""; orbSub.textContent=""; return; }
+  if (status==="paused") { cueBig.textContent="Paused"; cueSmall.textContent="Press RESUME when ready"; return; }
+  pLabel.textContent = p.label; pLabel.style.color = t.accent;
+  if (p.manual) {
+    cueBig.textContent = p.cue; cueSmall.textContent = "Tap RELEASE when you can no longer hold";
+    orbNum.style.fontSize = "18px"; orbNum.textContent = mTime+"s"; orbSub.textContent = "held";
+  } else {
+    cueBig.textContent = p.cue; cueSmall.textContent = "";
+    orbNum.style.fontSize = "52px"; orbNum.textContent = cd > 0 ? cd : ""; orbSub.textContent = "";
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  PROGRESS
+// ═══════════════════════════════════════════════════
+function updateProg() {
+  const t  = T[tIdx];
+  const sh = Math.min(cycle + (status==="running"?1:0), t.cycles);
+  pCount.textContent = sh+" / "+t.cycles;
+  const total = t.phases.length;
+  const pct = status==="done" ? 100 : ((cycle*total+pIdx)/(t.cycles*total))*100;
+  pFill.style.width = Math.min(100, pct)+"%";
+}
+
+// ═══════════════════════════════════════════════════
+//  CONTROLS
+// ═══════════════════════════════════════════════════
+function updateCtrl() {
+  const run = status==="running", pau = status==="paused";
+  const idl = status==="idle",    fin = status==="done";
+  btnS.style.display   = (idl||fin) ? "block" : "none";
+  btnP.style.display   = run ? "block" : "none";
+  btnR.style.display   = pau ? "block" : "none";
+  done.style.display   = fin ? "block" : "none";
+  const p = T[tIdx].phases[pIdx];
+  relWrap.style.display = (run && p && p.manual) ? "flex" : "none";
+}
+
+// ═══════════════════════════════════════════════════
+//  ADVANCE PHASE
+// ═══════════════════════════════════════════════════
+function advance() {
+  const t = T[tIdx];
+  const ni = (pIdx+1) % t.phases.length;
+  const nc = ni===0 ? cycle+1 : cycle;
+  if (nc >= t.cycles && ni===0) {
+    stopSounds(); if (SON) chime();
+    status="done"; pIdx=0; cycle=t.cycles;
+    orbBall.style.transition = "transform 1s ease, box-shadow 0.6s ease";
+    orbBall.style.transform  = "scale(1)";
+    setOrbCol(t.accent, t.glow, false);
+    setArc(1); updateCtrl(); updateProg(); renderCue(); updStrip();
+    return;
+  }
+  pIdx=ni; cycle=nc; cd=t.phases[pIdx].dur; mTime=0;
+  startPhase();
+}
+
+// ═══════════════════════════════════════════════════
+//  START PHASE
+// ═══════════════════════════════════════════════════
+function startPhase() {
+  clearInterval(tmr); clearInterval(mtmr); stopSounds();
+  const t = T[tIdx], p = t.phases[pIdx];
+  setOrbCol(p.col, t.glow, true);
+  animOrb(p); renderCue(); updStrip(); updateProg(); updateCtrl(); setArc(0);
+
+  if (p.dur > 0) playSound(p.snd, p.dur);
+
+  if (p.manual) {
+    orbNum.style.fontSize = "18px"; orbNum.textContent = "0s"; orbSub.textContent = "held";
+    mTime = 0;
+    playSound("hold", 5);
+    mtmr = setInterval(() => {
+      mTime++; orbNum.textContent = mTime+"s";
+      setArc(Math.min(mTime/120, 1)); renderCue();
+    }, 1000);
+    return;
+  }
+
+  cd = p.dur; orbNum.style.fontSize = "52px"; orbNum.textContent = cd; orbSub.textContent = "";
+  renderDots(p, 1); setArc(1/p.dur);
+
+  tmr = setInterval(() => {
+    cd--; const el = p.dur - cd;
+    setArc(el/p.dur);
+    if (cd <= 0) { clearInterval(tmr); orbNum.textContent = ""; advance(); return; }
+    orbNum.textContent = cd;
+    renderDots(p, el+1);
+  }, 1000);
+}
+
+// ═══════════════════════════════════════════════════
+//  RESET
+// ═══════════════════════════════════════════════════
+function doReset() {
+  clearInterval(tmr); clearInterval(mtmr); stopSounds();
+  status="idle"; pIdx=0; cd=0; cycle=0; mTime=0;
+  const t = T[tIdx];
+  orbBall.style.transition = "transform 0.6s ease, box-shadow 0.6s ease";
+  orbBall.style.transform  = "scale(1)";
+  setOrbCol(t.accent, t.glow, false); setArc(0);
+  orbNum.style.fontSize = "52px"; orbNum.textContent = "·"; orbSub.textContent = "";
+  pLabel.textContent = ""; done.style.display = "none";
+  buildStrip(); updStrip(); updateCtrl(); updateProg(); renderCue(); dots.innerHTML = "";
+}
+
+// ═══════════════════════════════════════════════════
+//  BUTTON HANDLERS
+// ═══════════════════════════════════════════════════
+function handleStart() {
+  if (status==="done") { pIdx=0; cycle=0; mTime=0; done.style.display="none"; }
+  status="running"; pIdx=0; cycle=0; mTime=0;
+  startPhase(); updateCtrl();
+}
+function handlePause() {
+  clearInterval(tmr); clearInterval(mtmr); stopSounds();
+  status="paused";
+  orbBall.style.transition = "transform 0.6s ease, box-shadow 0.6s ease";
+  updateCtrl(); renderCue();
+}
+function handleResume() {
+  status="running"; startPhase(); updateCtrl();
+}
+
+el("release-btn").addEventListener("click", () => {
+  clearInterval(mtmr); stopSounds(); advance();
+});
+
+document.querySelectorAll(".tab-btn").forEach(b => {
+  b.addEventListener("click", () => { tIdx = parseInt(b.dataset.idx); doReset(); renderTech(); });
+});
+
+// ═══════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════
+orbArc.setAttribute("stroke-dasharray", C);
+orbArc.setAttribute("stroke-dashoffset", C);
+renderTech();
+</script>
+</body>
+</html>
